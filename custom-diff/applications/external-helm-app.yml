@@ -31,7 +31,7 @@ spec:
     - /data/my-password
   # https://github.com/codefresh-contrib/gitops-cert-level-2-examples/blob/main/custom-diff/02-external-app/templates/deployment.yml#L8
   # Ignores creation key 
-  - group: apps/
+  - group: apps
     kind: Deployment
     jsonPointers:
     - /metadata/annotations/creation
