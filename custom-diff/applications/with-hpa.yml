@@ -21,4 +21,9 @@ spec:
   syncPolicy:
     syncOptions:
       - CreateNamespace=true  
-   
+  # Ignore replica count so that HPA can do its Job without conflicting with Argo
+  ignoreDifferences:
+  - group: apps
+    kind: Deployment
+    jsonPointers:
+    - /spec/replicas
