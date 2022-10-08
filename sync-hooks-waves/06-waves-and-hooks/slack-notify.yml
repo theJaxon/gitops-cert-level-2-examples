@@ -1,8 +1,8 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
+  name: slack-notify
   namespace: example06
-  generateName: slack-notify-
   labels:
     codefresh.io/cert: slack-job
     argocd.argoproj.io/hook: PostSync
