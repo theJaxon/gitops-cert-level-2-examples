@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   namespace: example06
-  generateName: disable-alerts-
+  name: disable-alerts
   labels:
     codefresh.io/cert: disable-job
     argocd.argoproj.io/hook: PreSync
