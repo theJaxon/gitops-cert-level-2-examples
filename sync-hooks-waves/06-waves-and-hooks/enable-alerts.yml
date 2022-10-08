@@ -4,7 +4,9 @@ metadata:
   namespace: example06
   generateName: enable-alerts-
   labels:
-    codefresh.io/cert: enable-job  
+    codefresh.io/cert: enable-job
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/sync-wave: "30"
 spec:
   template:
     spec:
