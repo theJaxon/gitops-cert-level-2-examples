@@ -342,7 +342,7 @@ argocd app create $namespace \
 --dest-server https://kubernetes.default.svc; done
 ```
 
-#### Exercise: Arog Image Updater
+#### Exercise: Argo Image Updater
 ```bash
 argocd app create my-example-apps \
 --repo https://github.com/theJaxon/gitops-cert-level-2-examples \
@@ -363,3 +363,158 @@ argocd app create image-updater \
 
 ```
 
+---
+
+### 4. Common Operations
+#### Sync Pahses/Hooks
+- Used when there's a specific ordering of components (Other than the default ordering provided)
+- Examples are:
+  1. Run a database migration task before the application is deployed
+  2. Run an email notification task after the application is deployed
+  3. Run a preflight check that will decide if the main sync operation will take place or not
+  4. Run smoke tests or some other kind of check after a deployment has taken place in order to validate it
+- To assign a resource to a specific phase use `argocd.argoproj.io/hook` annotation. 
+- During a Sync operation, Argo CD will apply the resource during the appropriate phase of the deployment.
+- Hooks can be any type of Kubernetes resource kind, but tend to be **Pod, Job or Argo Workflows**.
+- Multiple hooks can be specified as a comma separated list.
+
+#### Hook lifecycle and cleanup
+- Use `argocd.argoproj.io/hook-delete-policy` to decide when a hook will be deleted
+
+#### Sync Waves
+- An alternative method for changing the order of resources
+- Defined using `argocd.argoproj.io/sync-wave` annotation
+- The integer value defines the ordering (Argo syncs lowest first then proceeds with higher)
+- Hooks and resources are assigned wave **0** by default, a wave can also be negative indicating that it should run before all other resources
+
+##### Sync Ordering in Argo
+1. The phase (First PreSync, then Sync then PostSync)
+2. The wave they are in (lower values first)
+3. By kind (e.g. namespaces first and then other Kubernetes resources, followed by custom resources)
+4. By name
+
+#### Exercise: Sync Hooks and Waves
+
+<details>
+<summary> </summary>
+<p>
+
+```bash
+k create ns example01
+
+argocd app create example01 \
+--repo https://github.com/theJaxon/gitops-cert-level-2-examples \
+--project default \
+--sync-policy none \
+--path ./sync-hooks-waves/01-default-order \
+--dest-namespace example01 \
+--dest-server https://kubernetes.default.svc
+
+k create ns example02
+
+argocd app create example02 \
+--repo https://github.com/theJaxon/gitops-cert-level-2-examples \
+--project default \
+--sync-policy none \
+--path ./sync-hooks-waves/02-presync-job \
+--dest-namespace example01 \
+--dest-server https://kubernetes.default.svc 
+
+k create ns example03
+
+argocd app create example03 \
+--repo https://github.com/theJaxon/gitops-cert-level-2-examples \
+--project default \
+--sync-policy none \
+--path ./sync-hooks-waves/03-postsync-cleanup \
+--dest-namespace example03 \
+--dest-server https://kubernetes.default.svc 
+
+k create ns example04
+
+argocd app create example04 \
+--repo https://github.com/theJaxon/gitops-cert-level-2-examples \
+--project default \
+--sync-policy none \
+--path ./sync-hooks-waves/04-handle-sync-fail \
+--dest-namespace example04 \
+--dest-server https://kubernetes.default.svc 
+
+k create ns example05
+
+argocd app create example05 \
+--repo https://github.com/theJaxon/gitops-cert-level-2-examples \
+--project default \
+--sync-policy none \
+--path ./sync-hooks-waves/05-sync-waves \
+--dest-namespace example05 \
+--dest-server https://kubernetes.default.svc
+
+k create ns example06
+
+argocd app create example06 \
+--repo https://github.com/theJaxon/gitops-cert-level-2-examples \
+--project default \
+--sync-policy none \
+--path ./sync-hooks-waves/06-waves-and-hooks \
+--dest-namespace example06 \
+--dest-server https://kubernetes.default.svc
+```
+
+</p>
+</details>
+
+#### Exercies: Diff customization
+
+```bash
+argocd app create problematic-apps \
+--repo https://github.com/theJaxon/gitops-cert-level-2-examples \
+--project default \
+--sync-policy none \
+--path ./custom-diff/applications \
+--dest-namespace argocd \
+--dest-server https://kubernetes.default.svc
+```
+
+#### Notifications
+##### Main components for Notification delivery
+###### 1. Triggers
+- Define the events and condition that will send notifications
+- Ex: Trigger notification when an application is synced successfully
+- Triggers are defined in `argocd-notifications-cm`
+
+```yaml
+trigger.on-health-degraded: |
+  - description: Application has degraded
+    send:
+    - app-health-degraded
+    when: app.status.health.status == 'Degraded'
+```
+
+###### 2. Templates
+- Define Notification Content
+- Templates are defined in Configmap called `argocd-notifications-cm` which is deployed in **argocd** namespace
+- `argocd-notifications-secret` stores tokens that will be used to access the service
+
+```yaml
+email:
+  subject: 'Application {{.app.metadata.name}} has been created.'
+message: 'Application {{.app.metadata.name}} has been created.'
+teams:
+  title: 'Application {{.app.metadata.name}} has been created.'
+
+```
+
+###### 3. Notification Services
+- Targets of the Notifications such as Slack, e-mail and so on
+
+###### 4. Subscriptions
+- Annotations added to ArgoCD Applications that tie everything together
+```yaml
+# When a sync succeds send a message to slack channel1 and channel2 (Notification Services)
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: my-channel1;my-channel2
+```
