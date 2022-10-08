@@ -34,4 +34,4 @@ spec:
   - group: "apps/v1"
     kind: Deployment
     jsonPointers:
-    - /metadata/annotations/creation
+    - /metadata/annotations
