@@ -22,3 +22,16 @@ spec:
     syncOptions:
       - CreateNamespace=true  
    
+  ignoreDifferences:
+  # https://github.com/codefresh-contrib/gitops-cert-level-2-examples/blob/main/custom-diff/02-external-app/templates/secret.yml#L9
+  # used to ignore my-password as randAlphaNum will change each time
+  - group: ""
+    kind: Secret
+    jsonPointers:
+    - /data/my-password
+  # https://github.com/codefresh-contrib/gitops-cert-level-2-examples/blob/main/custom-diff/02-external-app/templates/deployment.yml#L8
+  # Ignores creation key 
+  - group: "apps/v1"
+    kind: Deployment
+    jsonPointers:
+    - /metadata/annotations/creation
