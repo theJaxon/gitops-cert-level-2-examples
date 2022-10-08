@@ -321,3 +321,45 @@ spec:
 </details>
 
 - `path.basename` matches exactly the name of the last directory so here full `path` evaluates to `application-sets/example-apps/prometheus` in case of prometheus, basename will evaluate only to `prometheus`
+
+---
+
+### 3. Promoting Releases with GitOps
+#### Git repository strategies
+- It's recommended to use `environment per folder` approach where all environments exist on the same branch and the filesystem has different folders that hold config files for each environment
+- It's NOT recommended to use ~~`environment per branch`~~ approach
+
+#### Exercise: Environment Promotion
+```bash
+for namespace in {qa,staging,prod}; do
+kubectl create namespace $namespace
+argocd app create $namespace \
+--repo https://github.com/theJaxon/gitops-cert-level-2-examples \
+--project default \
+--sync-policy automatic \
+--path ./environment-promotion/envs/$namespace \
+--dest-namespace $namespace \
+--dest-server https://kubernetes.default.svc; done
+```
+
+#### Exercise: Arog Image Updater
+```bash
+argocd app create my-example-apps \
+--repo https://github.com/theJaxon/gitops-cert-level-2-examples \
+--project default \
+--sync-policy automatic \
+--path ./image-updater/applications \
+--dest-namespace argocd \
+--dest-server https://kubernetes.default.svc 
+
+# Install argocd Image Updater
+argocd app create image-updater \
+--repo https://github.com/theJaxon/gitops-cert-level-2-examples \
+--project default \
+--sync-policy automatic \
+--path ./image-updater/controller \
+--dest-namespace argocd \
+--dest-server https://kubernetes.default.svc 
+
+```
+
